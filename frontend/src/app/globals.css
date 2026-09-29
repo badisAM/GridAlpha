@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Design tokens. Chart series use a validated categorical palette (fixed
+   order, CVD-checked in both modes); amber is the brand accent for chrome
+   only and never encodes data. Status colours are reserved for state.
+--------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+  --page: #f4f3ef;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --surface-3: #eceae4;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #7a7872;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --accent: #a4640f;
+  --accent-soft: rgba(232, 163, 61, 0.16);
+
+  --s1: #2a78d6; /* AI ensemble / battery   */
+  --s2: #eb6834; /* LightGBM / charge        */
+  --s3: #1baf7a; /* TiDE / discharge         */
+  --s4: #eda100; /* naive D-1                */
+  --s5: #e87ba4; /* profile                  */
+  --s6: #008300; /* naive D-7                */
+  --ref: #898781; /* oracle / actual reference */
+
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  --div-neg: #2a78d6;
+  --div-mid: #f0efec;
+  --div-pos: #e34948;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #222220;
+    --surface-3: #2c2c2a;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #8f8d86;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --accent: #e8a33d;
+    --accent-soft: rgba(232, 163, 61, 0.14);
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --s5: #d55181;
+    --s6: #008300;
+    --ref: #9a988f;
+    --good-text: #0ca30c;
+    --div-neg: #3987e5;
+    --div-mid: #383835;
+    --div-pos: #e66767;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #222220;
+  --surface-3: #2c2c2a;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #8f8d86;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: #e8a33d;
+  --accent-soft: rgba(232, 163, 61, 0.14);
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --s4: #c98500;
+  --s5: #d55181;
+  --s6: #008300;
+  --ref: #9a988f;
+  --good-text: #0ca30c;
+  --div-neg: #3987e5;
+  --div-mid: #383835;
+  --div-pos: #e66767;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-grid: var(--grid);
+  --color-line: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-good-text: var(--good-text);
+  --color-warning: var(--warning);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html,
+body {
+  background: var(--page);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* recharts: keep chrome recessive */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.recharts-surface:focus,
+.recharts-wrapper:focus,
+.recharts-sector:focus {
+  outline: none;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

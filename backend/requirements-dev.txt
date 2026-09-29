@@ -1,0 +1,7 @@
+-r requirements.txt
+pytest>=8
+ruff>=0.4
+websockets>=12
+jupyter>=1.0
+nbconvert>=7
+matplotlib>=3.8

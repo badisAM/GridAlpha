@@ -1,0 +1,21 @@
+# core
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+pyarrow>=14
+duckdb>=0.10
+holidays>=0.40
+# ML / DL
+lightgbm>=4.1
+torch>=2.2            # CPU build is enough (pip index: https://download.pytorch.org/whl/cpu)
+# data collection
+httpx>=0.26
+tenacity>=8.2
+# serving & orchestration
+fastapi>=0.110
+uvicorn[standard]>=0.27
+orjson>=3.9
+pydantic>=2.5
+pydantic-settings>=2.1
+apscheduler>=3.10,<4
+typer>=0.9

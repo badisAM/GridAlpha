@@ -1,0 +1,41 @@
+# One command:  docker compose up --build   ->  http://localhost:3000
+services:
+  pipeline:            # one-shot job: ingest -> backtest -> train -> forecast -> bid
+    build: ./backend
+    command: ["python", "-m", "gridalpha.cli", "run", "--quick"]
+    env_file:
+      - path: .env
+        required: false
+    volumes: [gridalpha-data:/app/data, gridalpha-artifacts:/app/artifacts]
+
+  api:                 # REST + WebSocket services (FastAPI)
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      GRIDALPHA_API_CORS_ORIGINS: '["http://localhost:3000"]'
+    ports: ["8000:8000"]
+    volumes: [gridalpha-data:/app/data, gridalpha-artifacts:/app/artifacts]
+    depends_on:
+      pipeline: { condition: service_completed_successfully }
+
+  scheduler:           # daily run at 10:30 Europe/Berlin (before 12:00 gate closure)
+    build: ./backend
+    command: ["python", "-m", "gridalpha.cli", "schedule"]
+    env_file:
+      - path: .env
+        required: false
+    volumes: [gridalpha-data:/app/data, gridalpha-artifacts:/app/artifacts]
+    depends_on: [api]
+
+  web:                 # Next.js trading desk
+    build:
+      context: ./frontend
+      args: { API_INTERNAL_URL: "http://api:8000" }
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  gridalpha-data:
+  gridalpha-artifacts:

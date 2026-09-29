@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gridalpha"
+version = "1.0.0"
+description = "AI copilot for battery-storage trading on the German day-ahead power market"
+readme = "../README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Ammar Bedis" }]
+license = { text = "MIT" }
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.1",
+  "scipy>=1.11",
+  "pyarrow>=14",
+  "duckdb>=0.10",
+  "lightgbm>=4.1",
+  "torch>=2.2",
+  "holidays>=0.40",
+  "httpx>=0.26",
+  "tenacity>=8.2",
+  "pydantic>=2.5",
+  "pydantic-settings>=2.1",
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "orjson>=3.9",
+  "apscheduler>=3.10,<4",
+  "typer>=0.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.4", "jupyter>=1.0", "matplotlib>=3.8", "nbconvert>=7", "websockets>=12"]
+mlops = ["mlflow>=2.10"]
+
+[project.scripts]
+gridalpha = "gridalpha.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["gridalpha*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::RuntimeWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B008", "UP007", "B905"]
