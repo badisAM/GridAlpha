@@ -83,7 +83,7 @@ class Lake:
         p = self.root / f"{name}.json"
         if not p.exists():
             return default
-        return json.loads(p.read_text())
+        return json.loads(p.read_text(encoding="utf-8-sig"))
 
     def append_jsonl(self, name: str, obj: Any) -> None:
         p = self.root / f"{name}.jsonl"
@@ -94,7 +94,7 @@ class Lake:
         p = self.root / f"{name}.jsonl"
         if not p.exists():
             return []
-        lines = p.read_text().strip().splitlines()
+        lines = p.read_text(encoding="utf-8-sig").strip().splitlines()
         return [json.loads(x) for x in lines[-last:]]
 
 

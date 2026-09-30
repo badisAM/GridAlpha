@@ -23,6 +23,11 @@ class SourceUnavailable(RuntimeError):
     """Raised when a remote source cannot be reached (triggers fallback)."""
 
 
+class NoData(SourceUnavailable):
+    """HTTP 404 'no content': the source is up but has nothing for that period
+    yet (e.g. tomorrow's day-ahead prices before the ~12:45 CET publication)."""
+
+
 # Energy-Charts rate-limits bursts (HTTP 429). We space requests out and,
 # on 429, wait for the server's Retry-After (or back off exponentially).
 MIN_INTERVAL_S = 1.5
@@ -49,11 +54,13 @@ def _get(client: httpx.Client, url: str, params: dict[str, Any]) -> Any:
         if r.status_code in (429, 500, 502, 503, 504) and attempt < MAX_ATTEMPTS:
             retry_after = r.headers.get("Retry-After", "")
             pause = float(retry_after) if retry_after.isdigit() else delay
-            log.info("HTTP %s from %s — retrying in %.0fs (attempt %d/%d)",
+            log.info("HTTP %s from %s - retrying in %.0fs (attempt %d/%d)",
                      r.status_code, url.split("/")[2], pause, attempt, MAX_ATTEMPTS)
             time.sleep(min(pause, 120))
             delay = min(delay * 2, 60)
             continue
+        if r.status_code == 404:
+            raise NoData(f"{url} -> HTTP 404: {r.text[:200]}")
         if r.status_code >= 400:
             raise SourceUnavailable(f"{url} -> HTTP {r.status_code}: {r.text[:200]}")
         return r.json()
@@ -81,9 +88,18 @@ def cached_get_json(
         return json.loads(cache_file.read_text())
     try:
         data = _get(client, url, params)
+    except NoData as exc:
+        if not immutable:
+            # open period not published yet (month boundary, early morning):
+            # skip it instead of failing the whole ingest
+            log.info("no data yet for %s (%s) - skipping this period", cache_file.name, exc)
+            return {}
+        if cache_file.exists():
+            return json.loads(cache_file.read_text())
+        raise
     except (httpx.HTTPError, SourceUnavailable) as exc:
         if cache_file.exists():
-            log.warning("fetch failed (%s) — using stale cache %s", exc, cache_file.name)
+            log.warning("fetch failed (%s) - using stale cache %s", exc, cache_file.name)
             return json.loads(cache_file.read_text())
         raise SourceUnavailable(str(exc)) from exc
     cache_file.parent.mkdir(parents=True, exist_ok=True)

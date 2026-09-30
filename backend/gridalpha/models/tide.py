@@ -270,7 +270,7 @@ class TiDEQuantile(Forecaster):
         m.nets = []
         for k in range(meta["n_seeds"]):
             net = TiDENet(m._n_fut, m._n_static)
-            net.load_state_dict(torch.load(path / f"tide_seed{k}.pt", weights_only=True))
+            net.load_state_dict(torch.load(path / f"tide_seed{k}.pt", map_location="cpu", weights_only=True))
             net.eval()
             m.nets.append(net)
         return m

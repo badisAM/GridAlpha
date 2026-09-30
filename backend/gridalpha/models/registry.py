@@ -31,7 +31,7 @@ def load_index() -> dict:
     p = _index_path()
     if not p.exists():
         return {"champion": None, "versions": []}
-    return json.loads(p.read_text())
+    return json.loads(p.read_text(encoding="utf-8-sig"))
 
 
 def _save_index(idx: dict) -> None:
@@ -81,7 +81,7 @@ def register(version: str, path: Path, card: dict) -> dict:
     while len(idx["versions"]) > KEEP_VERSIONS:
         old = idx["versions"].pop(0)
         if old["version"] != idx["champion"]:
-            shutil.rmtree(old["path"], ignore_errors=True)
+            shutil.rmtree(get_settings().models_dir / old["version"], ignore_errors=True)
     _save_index(idx)
     _maybe_mlflow(version, card)
     return {"version": version, "promoted": promote}
@@ -129,7 +129,7 @@ def champion_path() -> Path | None:
     idx = load_index()
     for v in idx["versions"]:
         if v["version"] == idx.get("champion"):
-            return Path(v["path"])
+            return get_settings().models_dir / v["version"]
     return None
 
 
@@ -138,8 +138,8 @@ def card(version: str | None = None) -> dict | None:
     version = version or idx.get("champion")
     for v in idx["versions"]:
         if v["version"] == version:
-            p = Path(v["path"]) / "card.json"
-            return json.loads(p.read_text()) if p.exists() else None
+            p = get_settings().models_dir / v["version"] / "card.json"
+            return json.loads(p.read_text(encoding="utf-8-sig")) if p.exists() else None
     return None
 
 
