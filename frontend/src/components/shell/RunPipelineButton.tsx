@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Play } from "lucide-react";
+import { Loader2, Lock, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { get, post, type Health } from "@/lib/api";
@@ -38,6 +38,18 @@ export default function RunPipelineButton() {
       setMsg((e as Error).message);
     }
   };
+
+  if (data?.pipeline_enabled === false) {
+    return (
+      <span
+        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-xs font-medium text-ink-2"
+        title="Public demo: read-only snapshot of real market data. Pipeline runs happen offline (python -m gridalpha.cli run)."
+      >
+        <Lock size={14} />
+        Read-only demo
+      </span>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">

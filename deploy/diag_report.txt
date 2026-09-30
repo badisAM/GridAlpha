@@ -1,0 +1,117 @@
+
+======================================================================
+1. ENVIRONMENT
+======================================================================
+python: 3.13.7 Windows-11-10.0.26200-SP0
+  fastapi    0.141.1
+  starlette  1.7.0
+  pandas     3.0.6
+  pyarrow    25.0.1
+  duckdb     1.5.6
+  lightgbm   4.7.0
+  torch      2.14.0+cpu
+  httpx      0.28.1
+
+======================================================================
+2. SNAPSHOT INVENTORY
+======================================================================
+[data\lake]
+         1.9 KB  brief_latest.json
+        88.4 KB  bt_daily.parquet
+       570.3 KB  bt_dispatch.parquet
+      1835.0 KB  bt_forecasts.parquet
+         6.6 KB  bt_summary.json
+        18.0 KB  bt_weights.parquet
+         2.5 KB  data_meta.json
+        37.4 KB  drift.json
+      3323.6 KB  features.parquet
+         9.4 KB  forecast_latest.parquet
+         2.0 KB  forecast_meta.json
+      1123.9 KB  market_hourly.parquet
+         5.3 KB  pipeline_runs.jsonl
+         7.4 KB  plan_latest.parquet
+         3.0 KB  plan_meta.json
+         8.8 KB  shap_latest.parquet
+[artifacts\models]
+         1.2 KB  registry.json
+         6.2 KB  v20260929-180719\card.json
+         0.5 KB  v20260929-180719\lgbm_meta.json
+       747.9 KB  v20260929-180719\lgbm_q10.txt
+       741.2 KB  v20260929-180719\lgbm_q50.txt
+       745.2 KB  v20260929-180719\lgbm_q90.txt
+         1.3 KB  v20260929-180719\tide_meta.json
+      4793.5 KB  v20260929-180719\tide_seed0.pt
+      4793.5 KB  v20260929-180719\tide_seed1.pt
+champion: v20260929-180719 | versions: ['v20260929-180719']
+champion folder exists: True
+
+======================================================================
+3. METADATA FILES (BOM / invalid JSON)
+======================================================================
+  0 problematic file(s)
+
+======================================================================
+4. API - LOCAL (same code + same data as the Space)
+======================================================================
+gridalpha imported from: C:\dev\gridalpha\deploy\space-build\gridalpha
+  200  /api/v1/health
+  200  /api/v1/system/config
+  200  /api/v1/market/summary
+  200  /api/v1/market/prices?days=3
+  200  /api/v1/market/daily
+  200  /api/v1/market/profile
+  200  /api/v1/forecast/latest
+  200  /api/v1/forecast/explain
+  200  /api/v1/forecast/history?days=3
+  200  /api/v1/trading/plan
+  200  /api/v1/backtest/summary
+  200  /api/v1/backtest/equity
+  200  /api/v1/backtest/daily
+  200  /api/v1/backtest/monthly
+  200  /api/v1/backtest/weights
+  200  /api/v1/backtest/days
+  200  /api/v1/models
+  200  /api/v1/models/leaderboard
+  200  /api/v1/models/error-by-hour
+  200  /api/v1/models/calibration
+  200  /api/v1/models/importance
+  200  /api/v1/monitoring/drift
+  200  /api/v1/monitoring/data-quality
+  200  /api/v1/monitoring/latency
+  200  /api/v1/monitoring/pipeline
+  200  /api/v1/copilot/brief
+  200  /api/v1/business/kpis
+  200  /api/v1/pipeline/status
+  -> 0 failing endpoint(s) locally
+
+======================================================================
+5. API - DEPLOYED SPACE (https://bedis123-gridalpha-api.hf.space)
+======================================================================
+  200  /api/v1/health
+  200  /api/v1/system/config
+  200  /api/v1/market/summary
+  200  /api/v1/market/prices?days=3
+  200  /api/v1/market/daily
+  200  /api/v1/market/profile
+  200  /api/v1/forecast/latest
+  200  /api/v1/forecast/explain
+  200  /api/v1/forecast/history?days=3
+  200  /api/v1/trading/plan
+  200  /api/v1/backtest/summary
+  200  /api/v1/backtest/equity
+  200  /api/v1/backtest/daily
+  200  /api/v1/backtest/monthly
+  200  /api/v1/backtest/weights
+  200  /api/v1/backtest/days
+  200  /api/v1/models
+  200  /api/v1/models/leaderboard
+  200  /api/v1/models/error-by-hour
+  200  /api/v1/models/calibration
+  200  /api/v1/models/importance
+  200  /api/v1/monitoring/drift
+  200  /api/v1/monitoring/data-quality
+  200  /api/v1/monitoring/latency
+  200  /api/v1/monitoring/pipeline
+  200  /api/v1/copilot/brief
+  200  /api/v1/business/kpis
+  200  /api/v1/pipeline/status

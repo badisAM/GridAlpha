@@ -54,6 +54,7 @@ export type Health = {
   target_day: string | null;
   last_run: { run_id: string; status: string; finished_at: string; duration_s: number } | null;
   pipeline_running: boolean;
+  pipeline_enabled?: boolean;
 };
 
 export type Quant = { q10: number; q50: number; q90: number };

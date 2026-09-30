@@ -63,6 +63,9 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
     )
     scheduler_enabled: bool = False
+    # public demo (e.g. Hugging Face ZeroGPU Space): serve a data snapshot and
+    # refuse pipeline runs from the API (no retraining inside the web process)
+    pipeline_api_enabled: bool = True
     scheduler_hour: int = 10
     scheduler_minute: int = 30
 

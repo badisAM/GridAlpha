@@ -33,6 +33,7 @@ def health() -> dict:
         "target_day": fmeta.get("target_day"),
         "last_run": {k: runs[-1].get(k) for k in ("run_id", "status", "finished_at", "duration_s")} if runs else None,
         "pipeline_running": _state["running"],
+        "pipeline_enabled": get_settings().pipeline_api_enabled,
     }
 
 
@@ -69,6 +70,12 @@ def _run(req: PipelineRequest) -> None:
 
 @router.post("/pipeline/run", status_code=202)
 def trigger(req: PipelineRequest) -> dict:
+    if not get_settings().pipeline_api_enabled:
+        raise HTTPException(
+            403,
+            "Pipeline runs are disabled on this public demo (read-only snapshot of real market data). "
+            "Run it locally: python -m gridalpha.cli run",
+        )
     if not _run_lock.acquire(blocking=False):
         raise HTTPException(409, "a pipeline run is already in progress")
     _state.update(running=True, request=req.model_dump())
