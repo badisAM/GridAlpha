@@ -49,7 +49,10 @@ def lake_cached(*tables: str) -> Callable:
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             stamps = tuple(_stamp(t) for t in tables)
-            key = (fn.__name__, args, tuple(sorted(kwargs.items())), stamps)
+            # module + qualified name + tables: two routes may share a function
+            # name (market.summary / backtest.summary) and, in a deployed snapshot,
+            # every lake file has the same mtime -> the old key collided
+            key = (fn.__module__, fn.__qualname__, tables, args, tuple(sorted(kwargs.items())), stamps)
             with _cache_lock:
                 if key in _cache:
                     return _cache[key]
