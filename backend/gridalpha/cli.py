@@ -14,7 +14,7 @@ import typer
 
 from .log import get_logger, setup_logging
 
-app = typer.Typer(add_completion=False, help="GridAlpha — AI battery trading copilot")
+app = typer.Typer(add_completion=False, help="GridAlpha - AI battery trading copilot")
 log = get_logger("cli")
 
 
@@ -23,11 +23,13 @@ def run(
     quick: bool = typer.Option(False, help="90-day backtest instead of 365 days"),
     mode: str = typer.Option(None, help="auto | live | synthetic"),
     skip_backtest: bool = typer.Option(False, help="reuse the last backtest"),
+    forecast_only: bool = typer.Option(
+        False, help="daily refresh: new data + saved champion -> plan for D+1 (no backtest, no retraining)"),
 ) -> None:
     """Run the full daily pipeline."""
     from .pipeline import run_pipeline
 
-    res = run_pipeline(mode=mode, quick=quick, skip_backtest=skip_backtest)
+    res = run_pipeline(mode=mode, quick=quick, skip_backtest=skip_backtest, forecast_only=forecast_only)
     typer.echo(json.dumps({k: res[k] for k in ("run_id", "status", "data_mode", "target_day",
                                                 "duration_s", "steps") if k in res}, indent=2))
 
@@ -70,7 +72,7 @@ def report(refresh: bool = typer.Option(False, help="re-render from the lake (e.
         lake = get_lake()
         write_markdown(lake.read_json("bt_summary"), registry.card() or {}, lake.read_json("data_meta") or {})
     p = get_settings().reports_dir / "kpi_report.md"
-    typer.echo(p.read_text(encoding="utf-8") if p.exists() else "no report yet — run the pipeline")
+    typer.echo(p.read_text(encoding="utf-8") if p.exists() else "no report yet - run the pipeline")
 
 
 if __name__ == "__main__":

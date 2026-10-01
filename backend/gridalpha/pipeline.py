@@ -53,11 +53,17 @@ def _target_day(feat: pd.DataFrame) -> pd.Timestamp:
     return target
 
 
-def run_pipeline(mode: str | None = None, quick: bool = False, skip_backtest: bool = False) -> dict:
+def run_pipeline(mode: str | None = None, quick: bool = False, skip_backtest: bool = False,
+                 forecast_only: bool = False) -> dict:
+    """Full run: ingest -> backtest -> challenger -> forecast -> plan.
+
+    ``forecast_only`` is the cheap daily refresh: fresh data, then the saved
+    champion models forecast D+1 (no backtest, no retraining). The backtest
+    figures and the registry stay exactly as the last full run left them."""
     s = get_settings()
     lake = get_lake()
     run = {"run_id": uuid.uuid4().hex[:10], "started_at": now_local().isoformat(),
-           "quick": quick, "steps": {}, "status": "running"}
+           "quick": quick, "forecast_only": forecast_only, "steps": {}, "status": "running"}
     t_start = time.perf_counter()
     steps = run["steps"]
     try:
@@ -65,14 +71,16 @@ def run_pipeline(mode: str | None = None, quick: bool = False, skip_backtest: bo
             data_meta = ingest(mode)
         run["data_mode"] = data_meta["mode"]
         if data_meta["quality"]["status"] == "fail":
-            raise RuntimeError("data-quality gate failed — see /monitoring/data-quality")
+            raise RuntimeError("data-quality gate failed - see /monitoring/data-quality")
 
         with timed(log, "features", steps):
             feat = build_features(lake.read("market_hourly"))
             lake.write("features", feat)
 
         bt_models = None
-        if skip_backtest and lake.exists("bt_daily"):
+        if forecast_only and lake.read_json("bt_summary") is None:
+            raise RuntimeError("forecast-only needs a previous full run (no backtest summary in the lake)")
+        if (skip_backtest or forecast_only) and lake.exists("bt_daily"):
             summary = lake.read_json("bt_summary")
         else:
             with timed(log, "backtest", steps):
@@ -85,37 +93,54 @@ def run_pipeline(mode: str | None = None, quick: bool = False, skip_backtest: bo
                 summary = bt.summary
                 bt_models = bt.models
 
-        with timed(log, "train_challenger", steps):
-            target = _target_day(feat)
-            # re-use the walk-forward experts: the deep model fine-tunes (warm start)
-            models = bt_models or build_models()
-            for m in models:
-                m.fit(feat, target)
-            version, vdir = registry.new_version_dir()
-            for m in models:
-                if m.name in ("lgbm", "tide"):
-                    m.save(vdir)
-            lgbm = next(m for m in models if m.name == "lgbm")
-            fm = summary["forecast_metrics"].get("ensemble", {})
-            tm = summary["trading_metrics"].get("ensemble_cvar", {})
-            card = {
-                "version": version, "created_at": now_local().isoformat(),
-                "data_mode": data_meta["mode"], "train_until": str((target - pd.Timedelta(days=1)).date()),
-                "period": summary["period"], "models": [m.name for m in models],
-                "capture_ratio": tm.get("capture_ratio"), "mae": fm.get("mae"),
-                "forecast_metrics": summary["forecast_metrics"],
-                "trading_metrics": summary["trading_metrics"],
-                "ensemble_weights": summary.get("latest_weights"),
-                "tide_history": next((m.history for m in models if m.name == "tide"), None),
-                "features": lgbm.features,
-            }
-            run["registry"] = registry.register(version, vdir, card)
-            if not run["registry"]["promoted"]:
-                # guard-rail: keep serving the champion's learned experts
+        if forecast_only:
+            with timed(log, "load_champion", steps):
+                target = _target_day(feat)
                 champs = {m.name: m for m in registry.load_champion_models()}
-                models = [champs.get(m.name, m) for m in models]
-                log.warning("challenger %s not promoted — forecasting with champion", version)
-            served_version = registry.load_index()["champion"]
+                if "lgbm" not in champs:
+                    raise RuntimeError("no champion model in the registry - run the full pipeline first")
+                models = []
+                for m in build_models():
+                    if m.name in champs:
+                        models.append(champs[m.name])
+                    else:                      # stateless baselines: refit is instant
+                        m.fit(feat, target)
+                        models.append(m)
+                served_version = registry.load_index()["champion"]
+                card = registry.card() or {}
+                run["registry"] = {"version": served_version, "promoted": False, "reused": True}
+        else:
+            with timed(log, "train_challenger", steps):
+                target = _target_day(feat)
+                # re-use the walk-forward experts: the deep model fine-tunes (warm start)
+                models = bt_models or build_models()
+                for m in models:
+                    m.fit(feat, target)
+                version, vdir = registry.new_version_dir()
+                for m in models:
+                    if m.name in ("lgbm", "tide"):
+                        m.save(vdir)
+                lgbm = next(m for m in models if m.name == "lgbm")
+                fm = summary["forecast_metrics"].get("ensemble", {})
+                tm = summary["trading_metrics"].get("ensemble_cvar", {})
+                card = {
+                    "version": version, "created_at": now_local().isoformat(),
+                    "data_mode": data_meta["mode"], "train_until": str((target - pd.Timedelta(days=1)).date()),
+                    "period": summary["period"], "models": [m.name for m in models],
+                    "capture_ratio": tm.get("capture_ratio"), "mae": fm.get("mae"),
+                    "forecast_metrics": summary["forecast_metrics"],
+                    "trading_metrics": summary["trading_metrics"],
+                    "ensemble_weights": summary.get("latest_weights"),
+                    "tide_history": next((m.history for m in models if m.name == "tide"), None),
+                    "features": lgbm.features,
+                }
+                run["registry"] = registry.register(version, vdir, card)
+                if not run["registry"]["promoted"]:
+                    # guard-rail: keep serving the champion's learned experts
+                    champs = {m.name: m for m in registry.load_champion_models()}
+                    models = [champs.get(m.name, m) for m in models]
+                    log.warning("challenger %s not promoted - forecasting with champion", version)
+                served_version = registry.load_index()["champion"]
 
         with timed(log, "forecast", steps):
             preds = {m.name: m.predict(feat, [target]) for m in models}

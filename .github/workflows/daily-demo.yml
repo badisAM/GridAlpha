@@ -1,0 +1,93 @@
+# Daily refresh of the public demo (Hugging Face Space).
+#
+# 08:30 UTC = 09:30 in Tunis all year = 10:30 in Berlin in summer / 09:30 in
+# winter -> always before the 12:00 CET day-ahead gate closure. GitHub may start
+# scheduled runs 5-30 min late.
+#
+# Default: new market data + the saved champion models -> plan for tomorrow
+# (no backtest, no retraining, ~1-2 min once the download cache is warm).
+# Manual "Run workflow" with full=true: 365-day backtest + retraining.
+#
+# Needs one repository secret: HF_TOKEN (Hugging Face token with write access).
+name: daily-demo
+
+on:
+  schedule:
+    - cron: "30 8 * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Full run (365-day backtest + retraining) instead of the daily forecast"
+        type: boolean
+        default: false
+
+concurrency:
+  group: daily-demo
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SPACE: Bedis123/gridalpha-api
+  GRIDALPHA_DATA_MODE: live
+  GRIDALPHA_HISTORY_START: "2024-01-01"
+  GRIDALPHA_DATA_DIR: ${{ github.workspace }}/space/data
+  GRIDALPHA_ARTIFACTS_DIR: ${{ github.workspace }}/space/artifacts
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies (CPU PyTorch)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r backend/requirements.txt
+
+      - name: Clone the Space (current snapshot + champion model)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          test -n "$HF_TOKEN" || { echo "::error::Add the HF_TOKEN repository secret (Settings > Secrets and variables > Actions)"; exit 1; }
+          git lfs install
+          git clone "https://user:${HF_TOKEN}@huggingface.co/spaces/${SPACE}" space
+
+      - name: Restore the raw-download cache (past months are downloaded once)
+        uses: actions/cache@v4
+        with:
+          path: space/data/raw
+          key: raw-${{ github.run_id }}
+          restore-keys: raw-
+
+      - name: Run the pipeline
+        working-directory: backend
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then
+            python -m gridalpha.cli run
+          else
+            python -m gridalpha.cli run --forecast-only
+          fi
+
+      - name: Keep only the champion model
+        run: python deploy/prune_snapshot.py space
+
+      - name: Publish to the Space (code + data snapshot)
+        run: |
+          rsync -a --delete --exclude __pycache__ backend/gridalpha/ space/gridalpha/
+          cd space
+          grep -qxF "data/raw/" .gitignore 2>/dev/null || echo "data/raw/" >> .gitignore
+          git config user.name "gridalpha-bot"
+          git config user.email "gridalpha-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
+          git commit -m "Daily refresh $(date -u +%Y-%m-%d)"
+          git push
